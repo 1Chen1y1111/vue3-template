@@ -76,35 +76,35 @@ const whiteList = ["/login"];
 router.beforeEach(async (to: ToRouteType, _from, next) => {
   const token = localStorage.getItem("token");
 
-  // 未登录访问非白名单页面，跳登录并记录回跳地址
-  if (!token && !whiteList.includes(to.path)) {
-    next({
-      path: "/login",
-    });
-    return;
-  }
+  // // 未登录访问非白名单页面，跳登录并记录回跳地址
+  // if (!token && !whiteList.includes(to.path)) {
+  //   next({
+  //     path: "/login",
+  //   });
+  //   return;
+  // }
 
-  // 已登录访问登录页，直接回首页
-  if (token && to.path === "/login") {
-    next({ path: "/" });
-    return;
-  }
+  // // 已登录访问登录页，直接回首页
+  // if (token && to.path === "/login") {
+  //   next({ path: "/" });
+  //   return;
+  // }
 
-  // 首次进入（有 token）时注入动态路由
-  if (token && !isAsyncRoutesReady) {
-    const asyncRoutes = await getAsyncRoutes();
+  // // 首次进入（有 token）时注入动态路由
+  // if (token && !isAsyncRoutesReady) {
+  //   const asyncRoutes = await getAsyncRoutes();
 
-    asyncRoutes.forEach((route) => {
-      router.addRoute(route);
-    });
+  //   asyncRoutes.forEach((route) => {
+  //     router.addRoute(route);
+  //   });
 
-    addPathMatch();
-    isAsyncRoutesReady = true;
+  //   addPathMatch();
+  //   isAsyncRoutesReady = true;
 
-    // 重新进入当前地址，确保本次匹配命中刚注入的路由
-    next({ ...to, replace: true });
-    return;
-  }
+  //   // 重新进入当前地址，确保本次匹配命中刚注入的路由
+  //   next({ ...to, replace: true });
+  //   return;
+  // }
 
   next();
 });
