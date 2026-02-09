@@ -1,4 +1,4 @@
-{
+﻿{
   "files": [],
   "references": [
     {
@@ -13,6 +13,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@/shadcn/*": [
+        "./src/shadcn/*"
       ]
     }
   }
