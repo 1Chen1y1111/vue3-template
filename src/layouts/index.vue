@@ -5,7 +5,7 @@ export const containerClass = "w-full h-full";
 </script>
 
 <script setup lang="ts">
-import AppSidebar from "./lay-sidebar/index.vue";
+import LaySidebar from "./lay-sidebar/index.vue";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,7 +24,8 @@ import {
 
 <template>
   <SidebarProvider>
-    <AppSidebar />
+    <LaySidebar />
+
     <SidebarInset class="h-screen overflow-hidden flex flex-col">
       <header
         class="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"

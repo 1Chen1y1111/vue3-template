@@ -1,9 +1,9 @@
 <script setup lang="ts">
 defineOptions({
-  name: "405",
+  name: "500",
 });
 </script>
 
 <template>
-  <h1>405</h1>
+  <h1>500</h1>
 </template>

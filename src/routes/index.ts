@@ -5,6 +5,14 @@
 } from "vue-router";
 
 import remainingRouter from "./modules/remaining";
+import {
+  ascending,
+  buildHierarchyTree,
+  formatFlatteningRoutes,
+  formatTwoStageRoutes,
+} from "./utils";
+
+import { cloneDeep } from "lodash-es";
 
 // 自动加载 modules 下的路由模块（remaining.ts 单独处理）
 const modules = import.meta.glob("./modules/**/*.ts", {
@@ -27,27 +35,50 @@ Object.entries(modules).forEach(([key, mod]) => {
   }
 });
 
-// 静态路由：全屏页面 + 业务模块路由
-export const constantRoutes: RouteRecordRaw[] = [
-  ...(remainingRouter as RouteRecordRaw[]),
-  ...moduleRoutes,
-];
+// /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） keep-alive 只支持到二级缓存 */
+export const constantRoutes: RouteRecordRaw[] = formatTwoStageRoutes(
+  formatFlatteningRoutes(
+    buildHierarchyTree(ascending(moduleRoutes.flat(Infinity)))
+  )
+);
+
+/** 初始的静态路由，用于退出登录时重置路由 */
+const initConstantRoutes: Array<RouteRecordRaw> = cloneDeep(constantRoutes);
+
+/** 用于渲染菜单，保持原始层级 */
+export const constantMenus: Array<RouteConfigsTable> = ascending(
+  moduleRoutes.flat(Infinity)
+).concat(...remainingRouter);
+
+/** 不参与菜单的路由 */
+export const remainingPaths = remainingRouter.map((v) => v.path);
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes: constantRoutes,
+  routes: constantRoutes.concat(...remainingRouter),
   strict: true,
 });
 
-// 标记动态路由是否已注入，避免重复注册
-let isAsyncRoutesReady = false;
+/** 记录已经加载的页面路径 */
+const loadedPaths = new Set<string>();
 
-/**
- * 动态路由来源占位函数
- * 后续接后端权限接口后，在此返回过滤后的可访问路由
- */
-async function getAsyncRoutes(): Promise<RouteRecordRaw[]> {
-  return [];
+/** 重置已加载页面记录 */
+export function resetLoadedPaths() {
+  loadedPaths.clear();
+}
+
+/** 重置路由 */
+export function resetRouter() {
+  router.clearRoutes();
+  for (const route of initConstantRoutes.concat(...remainingRouter)) {
+    router.addRoute(route);
+  }
+  router.options.routes = formatTwoStageRoutes(
+    formatFlatteningRoutes(
+      buildHierarchyTree(ascending(moduleRoutes.flat(Infinity)))
+    )
+  );
+  resetLoadedPaths();
 }
 
 /**
@@ -74,52 +105,13 @@ function addPathMatch() {
 const whiteList = ["/login"];
 
 router.beforeEach(async (to: ToRouteType, _from, next) => {
-  const token = localStorage.getItem("token");
-
-  // // 未登录访问非白名单页面，跳登录并记录回跳地址
-  // if (!token && !whiteList.includes(to.path)) {
-  //   next({
-  //     path: "/login",
-  //   });
-  //   return;
-  // }
-
-  // // 已登录访问登录页，直接回首页
-  // if (token && to.path === "/login") {
-  //   next({ path: "/" });
-  //   return;
-  // }
-
-  // // 首次进入（有 token）时注入动态路由
-  // if (token && !isAsyncRoutesReady) {
-  //   const asyncRoutes = await getAsyncRoutes();
-
-  //   asyncRoutes.forEach((route) => {
-  //     router.addRoute(route);
-  //   });
-
-  //   addPathMatch();
-  //   isAsyncRoutesReady = true;
-
-  //   // 重新进入当前地址，确保本次匹配命中刚注入的路由
-  //   next({ ...to, replace: true });
-  //   return;
-  // }
+  to.meta.loaded = loadedPaths.has(to.path);
 
   next();
 });
 
-// 路由切换后同步页面标题
 router.afterEach((to) => {
-  document.title = to.meta?.title ? `${to.meta.title} - Admin` : "Admin";
+  loadedPaths.add(to.path);
 });
-
-/**
- * 退出登录时可调用：
- * 当前版本先重置动态路由状态位，后续可按 name 批量 removeRoute
- */
-export function resetRouter() {
-  isAsyncRoutesReady = false;
-}
 
 export default router;

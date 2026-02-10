@@ -1,3 +1,4 @@
+import { SquareTerminal } from "lucide-vue-next";
 const Layout = () => import("@/layouts/index.vue");
 
 export default {
@@ -6,7 +7,7 @@ export default {
   component: Layout,
   redirect: "/home",
   meta: {
-    icon: "ep/home-filled",
+    icon: SquareTerminal,
     title: "首页",
     rank: 0,
   },

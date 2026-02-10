@@ -1,8 +1,10 @@
+import { ShieldAlert } from "lucide-vue-next";
+
 export default {
   path: "/error",
   redirect: "/error/403",
   meta: {
-    icon: "ri/information-line",
+    icon: ShieldAlert,
     title: "异常页面",
     rank: 9,
   },

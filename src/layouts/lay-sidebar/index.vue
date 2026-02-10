@@ -1,22 +1,14 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import type { SidebarProps } from "@/shadcn/ui/sidebar";
 
-import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
-} from "lucide-vue-next";
+import { AudioWaveform, Command, GalleryVerticalEnd } from "lucide-vue-next";
 import NavMain from "../lay-nav/NavMain.vue";
-import NavProjects from "../lay-nav/NavProjects.vue";
 import NavUser from "../lay-nav/NavUser.vue";
 import TeamSwitcher from "../lay-nav/TeamSwitcher.vue";
+import { constantMenus } from "@/routes";
+import { ascending, filterTree } from "@/routes/utils";
 
 import {
   Sidebar,
@@ -30,132 +22,78 @@ const props = withDefaults(defineProps<SidebarProps>(), {
   collapsible: "icon",
 });
 
-// This is sample data.
+interface NavItem {
+  title: string;
+  url: string;
+  isActive?: boolean;
+  items?: NavItem[];
+}
+
+const route = useRoute();
+
+function resolvePath(parentPath: string, path: string) {
+  if (!path) return parentPath || "/";
+  if (path.startsWith("/")) return path;
+
+  const parent = parentPath.endsWith("/")
+    ? parentPath.slice(0, -1)
+    : parentPath;
+  return `${parent}/${path}`.replace(/\/+/g, "/") || "/";
+}
+
+function mapToItems(routes: RouteConfigsTable[], parentPath = ""): NavItem[] {
+  return routes
+    .map((routeItem) => {
+      const fullPath = resolvePath(parentPath, routeItem.path || "");
+      const children = routeItem.children?.length
+        ? mapToItems(routeItem.children as RouteConfigsTable[], fullPath)
+        : undefined;
+
+      const url =
+        typeof routeItem.redirect === "string" && routeItem.redirect.length > 0
+          ? routeItem.redirect
+          : children?.[0]?.url || fullPath;
+
+      const isSelfActive = route.path === url;
+      const isChildActive = children?.some((child) => child.isActive) ?? false;
+
+      return {
+        title: routeItem.meta?.title || String(routeItem.name || url),
+        icon: routeItem.meta?.icon,
+        url,
+        isActive: isSelfActive || isChildActive,
+        items: children,
+      } as NavItem;
+    })
+    .filter((item) => item.title && !item.url.includes(":pathMatch"));
+}
+
+const filterMenuTree = computed<NavItem[]>(() => {
+  const tree = filterTree(ascending(constantMenus));
+  return mapToItems(tree);
+});
+
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "admin",
+    email: "admin@example.com",
     avatar: "/avatars/shadcn.jpg",
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "CY Admin",
       logo: GalleryVerticalEnd,
-      plan: "Enterprise",
+      plan: "Starter",
     },
     {
-      name: "Acme Corp.",
+      name: "Workspace",
       logo: AudioWaveform,
-      plan: "Startup",
+      plan: "Team",
     },
     {
-      name: "Evil Corp.",
+      name: "Tools",
       logo: Command,
       plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 };
@@ -166,13 +104,15 @@ const data = {
     <SidebarHeader>
       <TeamSwitcher :teams="data.teams" />
     </SidebarHeader>
+
     <SidebarContent>
-      <NavMain :items="data.navMain" />
-      <NavProjects :projects="data.projects" />
+      <NavMain :items="filterMenuTree" />
     </SidebarContent>
+
     <SidebarFooter>
       <NavUser :user="data.user" />
     </SidebarFooter>
+
     <SidebarRail />
   </Sidebar>
 </template>
